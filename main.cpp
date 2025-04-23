@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "./tokenizer.hpp"
+#include "parser.hpp"
+#include "structs.hpp"
 std::string toStr(TokenType t){
     switch(t){
         case TokenType::_exit: 
@@ -34,8 +36,10 @@ int main(int argc, char* argv[]){
     // for(auto t : tokens){
     //     std::cout << toStr(t.type) << " " << t.val << "\n";
     // };
+    Parser parser(tokens);
+    Node::Prog root = parser.parse();
 
-    return 0;
+return 0;
 };
 
 
