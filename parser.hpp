@@ -31,7 +31,7 @@ class Parser{
             if (look().has_value() && look().value().type == TokenType::_int_lit){
                 return Node::Expr({.var = Node::IntLit({.val = mov_next().value()})});
             } else if (look().has_value() && look().value().type == TokenType::_ident){
-                return Node::Expr({.var = Node::Ident({.val = mov_next().value()})});
+                return Node::Expr({.var = Node::Ident({.ident = mov_next().value()})});
             } else {
                 std::cerr << "Something went wrong when parsing expression ";
                 exit(-1);
@@ -65,7 +65,7 @@ class Parser{
                     look(1).has_value() && look(1).value().type == TokenType::_ident &&  
                     look(2).has_value() && look(2).value().type == TokenType::_eq){
                 Node::Type type = {.type = mov_next().value()};
-                Node::Ident ident = {.val = mov_next().value()};
+                Node::Ident ident = {.ident = mov_next().value()};
                 mov_next(); //skip `=`
                 stmnt_node.var = Node::DeclareIdent({.type = type, .ident = ident, .expr = parse_expr()});
                 if (look().has_value() && look().value().type == TokenType::_semi_col){
@@ -104,7 +104,7 @@ class Parser{
 
         Node::Prog parse(){
             Node::Prog root_node;
-            while (index < tokens_len){
+            while (look().has_value()){
                 root_node.funcs.push_back(parse_stmnt());
             };
             return root_node;

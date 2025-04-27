@@ -20,7 +20,7 @@ namespace Node {
     };
 
     struct Ident {
-        Token val;
+        Token ident;
     };
     
     struct Expr {
