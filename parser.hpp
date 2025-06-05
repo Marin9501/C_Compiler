@@ -1,16 +1,19 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
 #include <vector>
 #include "./structs.hpp"
+#include "./allocator.hpp"
 
 class Parser{
     private:
         const std::vector<Token> tokens;
         const int tokens_len;
         int index = 0;
+        ArenaAllocator allocator;
 
         std::optional<Token> look(int ahead = 0){
             if (index + ahead < tokens_len){
@@ -99,7 +102,7 @@ class Parser{
         //     return fun_node;
         // };
     public:
-        Parser(const std::vector<Token>& tokens) : tokens(tokens), tokens_len(tokens.size()){
+        Parser(const std::vector<Token>& tokens) : tokens(tokens), tokens_len(tokens.size()), allocator(1024*1024 * 5){
         };
 
         Node::Prog parse(){
