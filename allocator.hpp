@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdlib>
+#include <iostream>
 
 class ArenaAllocator {
     private:
@@ -15,15 +16,23 @@ class ArenaAllocator {
             offset = buffer;
         };
 
+        // ArenaAllocator(const ArenaAllocator& other) = delete;
+        // ArenaAllocator operator=(const ArenaAllocator& other) = delete;
+
         ~ArenaAllocator(){
             free(buffer);
         }
 
         template<typename T>
         T* alloc(){
+            if (offset+sizeof(T) > buffer + size){
+                std::cout << "Buffer overflow\n";
+                exit(-1);
+            };
             void* temp = offset;
+            new (temp) T();
             offset += sizeof(T);
-            return temp;
+            return static_cast<T*>(temp);
         };
 
 };

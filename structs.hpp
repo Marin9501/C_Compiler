@@ -36,8 +36,8 @@ namespace Node {
     };
 
     struct DeclareIdent {
-        Type type;
-        Ident ident;
+        Type* type;
+        Ident* ident;
         Expr* expr;
     };
 
