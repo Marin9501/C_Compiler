@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 
-enum class TokenType {_exit, _int_lit, _semi_col, _open_par, _close_par, _func, _open_curl, _close_curl, _type_dec, _ident, _eq};
+enum class TokenType {_exit, _int_lit, _semi_col, _open_par, _close_par, _func, _open_curl, _close_curl, _type_dec, _ident, _eq, _plus, _times};
 
 struct Token {
     TokenType type;
@@ -22,23 +22,31 @@ namespace Node {
     struct Ident {
         Token ident;
     };
+
+    struct Expr;
     
+    struct BinExpr {
+        Expr* pLeft;
+        Token operation;
+        Expr* pRight;
+    };
+
     struct Expr {
-        std::variant<IntLit, Ident> var;
+        std::variant<IntLit*, Ident*, BinExpr*> var;
     };
 
     struct DeclareIdent {
-        Type type;
-        Ident ident;
-        Expr expr;
+        Type* type;
+        Ident* ident;
+        Expr* expr;
     };
 
     struct StmntExit {
-        Expr expr;
+        Expr* expr;
     };
 
     struct Stmnt {
-        std::variant<StmntExit, DeclareIdent> var; 
+        std::variant<StmntExit*, DeclareIdent*> var; 
     };
 
     struct Fun {
@@ -47,6 +55,6 @@ namespace Node {
 
     struct Prog {
         // std::vector<Fun> funcs;
-        std::vector<Stmnt> funcs;
+        std::vector<Stmnt*> funcs;
     };
 };

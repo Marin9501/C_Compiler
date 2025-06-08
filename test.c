@@ -1,2 +1,2 @@
-int x = 1;
-int y = 5;
+int x = 4;
+exit(x);
