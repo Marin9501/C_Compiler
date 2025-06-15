@@ -50,6 +50,14 @@ class Tokenizer{
                     tokens.push_back({.type = TokenType::_eq});
                     buf.clear();
                     index++;
+                } else if (data.at(index) == '+'){
+                    tokens.push_back({.type = TokenType::_bin_op, .val = "+"});
+                    buf.clear();
+                    index++;
+                } else if (data.at(index) == '*'){
+                    tokens.push_back({.type = TokenType::_bin_op, .val = "*"});
+                    buf.clear();
+                    index++;
                 } else if (data.at(index) == '('){
                     tokens.push_back({.type = TokenType::_open_par});
                     buf.clear();

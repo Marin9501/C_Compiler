@@ -44,7 +44,7 @@ int main(int argc, char* argv[]){
         exit(-1);
     };
 
-    system("cat out.asm");
+    //system("cat out.asm");
     system("nasm -felf64 out.asm -o out.o");
     system("ld out.o -o out");
 
