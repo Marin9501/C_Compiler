@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <optional>
+#include <string>
+#include <unordered_map>
 #include <vector>
 #include "./structs.hpp"
 #include "./allocator.hpp"
@@ -14,6 +16,8 @@ class Parser{
         const int tokens_len;
         int index = 0;
         ArenaAllocator allocator;
+        enum class prec {
+        };
 
         std::optional<Token> look(int ahead = 0){
             if (index + ahead < tokens_len){
@@ -30,23 +34,40 @@ class Parser{
             };
         };
 
+        Node::BinExpr* parse_bin_expr(){
+            Node::IntLit* int_lit = allocator.alloc<Node::IntLit>();
+            int_lit->val = mov_next().value();
+            Node::Expr* expr = allocator.alloc<Node::Expr>();
+            expr->var = int_lit;
+
+            Node::BinExpr* bin_expr = allocator.alloc<Node::BinExpr>();
+            bin_expr->Left = expr;
+            bin_expr->operation = mov_next().value();
+            bin_expr->Right = parse_expr();
+            return bin_expr;
+        };
+
         Node::Expr* parse_expr(){
-            if (look().has_value() && look().value().type == TokenType::_int_lit){
+            Node::Expr* expr = allocator.alloc<Node::Expr>();
+            if (look(1).has_value() && look(1).value().type == TokenType::_bin_op){
+                expr->var = parse_bin_expr();
+                return expr;
+            } else if (look().has_value() && look().value().type == TokenType::_int_lit){
                 Node::IntLit* int_lit = allocator.alloc<Node::IntLit>();
                 int_lit->val = mov_next().value();
-                Node::Expr* expr = allocator.alloc<Node::Expr>();
+                
                 expr->var = int_lit;
                 return expr;
                 //return Node::Expr({.var = Node::IntLit({.val = mov_next().value()})});
             } else if (look().has_value() && look().value().type == TokenType::_ident){
                 Node::Ident* ident = allocator.alloc<Node::Ident>();
                 ident->ident = mov_next().value();
-                Node::Expr* expr = allocator.alloc<Node::Expr>();
+
                 expr->var = ident;
                 return expr;
                 //return Node::Expr({.var = Node::Ident({.ident = mov_next().value()})});
             } else {
-                std::cerr << "Something went wrong when parsing expression ";
+                std::cerr << "Something went wrong when parsing expression";
                 exit(-1);
             };
         };

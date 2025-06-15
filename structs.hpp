@@ -3,7 +3,18 @@
 #include <vector>
 #include <string>
 
-enum class TokenType {_exit, _int_lit, _semi_col, _open_par, _close_par, _func, _open_curl, _close_curl, _type_dec, _ident, _eq, _plus, _times};
+enum class TokenType {
+    //Expressions?
+    _exit, _int_lit, _func, _type_dec, _ident,
+    //Math
+     _bin_op, _eq,
+    //Other
+    _semi_col, _open_par, _close_par, _open_curl, _close_curl};
+
+enum class prec {
+    add = 1,
+    mult = 2,
+};
 
 struct Token {
     TokenType type;
@@ -26,9 +37,9 @@ namespace Node {
     struct Expr;
     
     struct BinExpr {
-        Expr* pLeft;
+        Expr* Left;
         Token operation;
-        Expr* pRight;
+        Expr* Right;
     };
 
     struct Expr {
