@@ -11,11 +11,6 @@ enum class TokenType {
     //Other
     _semi_col, _open_par, _close_par, _open_curl, _close_curl};
 
-enum class prec {
-    add = 1,
-    mult = 2,
-};
-
 struct Token {
     TokenType type;
     std::string val = "";
@@ -56,8 +51,14 @@ namespace Node {
         Expr* expr;
     };
 
+    struct Scope;
+
     struct Stmnt {
-        std::variant<StmntExit*, DeclareIdent*> var; 
+        std::variant<StmntExit*, DeclareIdent*, Scope*> var; 
+    };
+
+    struct Scope {
+        std::vector<Stmnt*> stmnts;
     };
 
     struct Fun {
@@ -66,6 +67,6 @@ namespace Node {
 
     struct Prog {
         // std::vector<Fun> funcs;
-        std::vector<Stmnt*> funcs;
+        std::vector<Scope*> funcs;
     };
 };
