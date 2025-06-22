@@ -34,6 +34,9 @@ class Tokenizer{
                     } else if (buf == "int"){
                         tokens.push_back({.type = TokenType::_type_dec, .val = "int"});
                         buf.clear();
+                    } else if (buf == "if"){
+                        tokens.push_back({.type = TokenType::_if});
+                        buf.clear();
                     } else {
                         tokens.push_back({.type = TokenType::_ident, .val = buf});
                         buf.clear();

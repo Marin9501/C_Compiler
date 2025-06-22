@@ -4,8 +4,10 @@
 #include <string>
 
 enum class TokenType {
+    //Statements
+    _exit, _type_dec, _if,
     //Expressions?
-    _exit, _int_lit, _func, _type_dec, _ident,
+     _int_lit, _func, _ident,
     //Math
      _bin_op, _eq,
     //Other
@@ -53,8 +55,13 @@ namespace Node {
 
     struct Scope;
 
+    struct If {
+        Expr* condition;
+        Scope* scope;
+    };
+
     struct Stmnt {
-        std::variant<StmntExit*, DeclareIdent*, Scope*> var; 
+        std::variant<StmntExit*, DeclareIdent*, Scope*, If*> var; 
     };
 
     struct Scope {

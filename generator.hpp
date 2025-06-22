@@ -24,6 +24,7 @@ class Generator {
         std::stringstream output;
         size_t stack_size = 0;
         std::vector<Scope> scopes;
+        int label_count = 0;
 
         void push(const std::string& reg){
             output << "push " << reg << "\n";
@@ -113,7 +114,19 @@ class Generator {
             
             void operator()(const Node::Scope* scope){
                 gen->gen_scope(scope);
-            }
+            };
+
+            void operator()(const Node::If* if_block){
+                gen->gen_expr(if_block->condition);
+                gen->pop("rax");
+
+                gen->output << "test rax, rax\n";
+                std::string label = "label" + std::to_string(gen->label_count);
+                gen->output << "jz " << label << "\n";
+
+                gen->gen_scope(if_block->scope);
+                gen->output << label << ":\n";
+            };
         };
 
         void gen_expr(const Node::Expr* expr){
