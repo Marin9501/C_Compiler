@@ -51,7 +51,13 @@ class Parser{
 
                 expr->var = int_lit;
                 return expr;
-                //return Node::Expr({.var = Node::IntLit({.val = mov_next().value()})});
+            } else if (look().has_value() && look().value().type == TokenType::_bool_lit){
+                Node::BoolLit* bool_lit = allocator.alloc<Node::BoolLit>();
+                bool_lit->bool_lit = mov_next().value();
+
+                expr->var = bool_lit;
+                return expr;
+
             } else if (look().has_value() && look().value().type == TokenType::_ident){
                 Node::Ident* ident = allocator.alloc<Node::Ident>();
                 ident->ident = mov_next().value();
@@ -69,7 +75,7 @@ class Parser{
                 mov_next(); //Skip ')'
                 return expr;
             } else {
-                std::cerr << "Something went wrong when parsing expression";
+                std::cerr << "Something went wrong when parsing expression\n";
                 exit(-1);
             };
         };
@@ -100,10 +106,33 @@ class Parser{
             };
                 return expr;
         };
+
+        Node::IfElse* parse_if_else(){
+            Node::IfElse* if_stmnt = allocator.alloc<Node::IfElse>();
+            mov_next(); //Skip 'if' token
+            if (look().has_value() && look().value().type != TokenType::_open_par){
+                std::cerr << "Expected '(' after 'if' statement\n";
+                exit(-1);
+            };
+            mov_next(); //Skip '('
+            if_stmnt->condition = parse_expr();
+            mov_next(); //Skip ')'
+            if_stmnt->if_block = parse_scope();
+            if (look().has_value() && look().value().type == TokenType::_else){
+                mov_next(); //Skip 'else' token
+                Node::Scope* scope = allocator.alloc<Node::Scope>();
+                scope->stmnts.push_back(parse_stmnt());
+                if_stmnt->else_block = scope;
+            }
+            return if_stmnt;
+        };
         
         Node::Stmnt* parse_stmnt(){
             Node::Stmnt* stmnt_node = allocator.alloc<Node::Stmnt>();
-            if (look().has_value() && look().value().type == TokenType::_open_curl){
+            if (look().has_value() && look().value().type == TokenType::_if){
+                Node::IfElse* if_block = parse_if_else();
+                stmnt_node->var = if_block;
+            } else if (look().has_value() && look().value().type == TokenType::_open_curl){
                 Node::Scope* scope = parse_scope();
                 stmnt_node->var = scope;
             } else if (look().has_value() && look().value().type == TokenType::_close_curl){
@@ -111,13 +140,13 @@ class Parser{
             } else {
                 if (look().has_value() && look().value().type == TokenType::_exit){
                     if (look(1).has_value() && look(1).value().type == TokenType::_open_par){
-                        mov_next();
-                        mov_next();
+                        mov_next(); //Skip 'exit' token
+                        mov_next(); //Skip '('
                         Node::StmntExit* stmnt_exit = allocator.alloc<Node::StmntExit>();
                         stmnt_exit->expr = parse_expr();
                         stmnt_node->var = stmnt_exit;
                         if (look().has_value() && look().value().type == TokenType::_close_par){
-                            mov_next();
+                            mov_next(); //Skip ')'
                         } else {
                             std::cerr << "Expected ')' when doing exit\n";
                             exit(-1);
@@ -176,23 +205,7 @@ class Parser{
 
             return scope;
         };
-        //NO PARAMETERS OR PARENTHESIES AT FUNCTION DECLARATION
-        // Node::Fun parse_func(){
-        //     Node::Fun fun_node;
-        //     if (tokens.at(index+1).type == TokenType::_open_curl){
-        //         while (tokens.at(index).type != TokenType::_close_curl){
-        //             if (index >= tokens_len){
-        //                 std::cerr << "Expected } at the end of a function block\n";
-        //             };
-        //             fun_node.statements.push_back(parse_stmnt());
-        //             index++;
-        //         };
-        //     } else {
-        //         std::cerr << "Expected { after function declaration\n";
-        //         exit(-1);
-        //     };
-        //     return fun_node;
-        // };
+
     public:
         Parser(const std::vector<Token>& tokens) : tokens(tokens), tokens_len(tokens.size()), allocator(1024*1024 * 5){
         };

@@ -24,6 +24,7 @@ class Generator {
         std::stringstream output;
         size_t stack_size = 0;
         std::vector<Scope> scopes;
+        int label_count = 0;
 
         void push(const std::string& reg){
             output << "push " << reg << "\n";
@@ -36,23 +37,36 @@ class Generator {
         }
 
         struct ExprVisitor {
-            Generator* gen;
+            Generator& gen;
 
             void operator()(const Node::IntLit* int_lit){
-                gen->output << "mov rax, " << int_lit->val.val << "\n";
-                gen->push("rax");
+                gen.output << "mov rax, " << int_lit->val.val << "\n";
+                gen.push("rax");
             };
+
+            void operator()(const Node::BoolLit* bool_lit){
+                if (bool_lit->bool_lit.val == "true"){
+                    gen.output << "mov rax, 1\n";
+                    gen.push("rax");
+                } else if (bool_lit->bool_lit.val == "false"){
+                    gen.output << "mov rax, 0\n";
+                    gen.push("rax");
+                } else {
+                    std::cerr << "Unknown bool value: " << bool_lit->bool_lit.val << "\n";
+                    exit(-1);
+                }
+            }
             
             void operator()(const Node::Ident* ident){
                 bool not_found = true;
-                for (int i = gen->scopes.size()-1; i >= 0; i--){
-                    const Scope scope = gen->scopes.at(i);
+                for (int i = gen.scopes.size()-1; i >= 0; i--){
+                    const Scope scope = gen.scopes.at(i);
                     if (scope.variables.find(ident->ident.val) != scope.variables.end()){
                         not_found = false;
                         const Var& var = scope.variables.at(ident->ident.val);
                         std::stringstream s;
-                        s << "QWORD [rsp + " << (gen->stack_size - var.stack_loc - 1)*8 << "]\n";
-                        gen->push(s.str());
+                        s << "QWORD [rsp + " << (gen.stack_size - var.stack_loc - 1)*8 << "]\n";
+                        gen.push(s.str());
                         break;
                     };
                 };
@@ -64,28 +78,28 @@ class Generator {
             };
 
             void operator()(const Node::BinExpr* bin_expr){
-                gen->gen_expr(bin_expr->Left);
-                gen->gen_expr(bin_expr->Right);
+                gen.gen_expr(bin_expr->Left);
+                gen.gen_expr(bin_expr->Right);
                 if (bin_expr->operation.val == "+"){
-                    gen->pop("rdi");
-                    gen->pop("rax");
-                    gen->output << "add rax, rdi\n";
-                    gen->push("rax");
+                    gen.pop("rdi");
+                    gen.pop("rax");
+                    gen.output << "add rax, rdi\n";
+                    gen.push("rax");
                 } else if (bin_expr->operation.val == "-"){
-                    gen->pop("rdi");
-                    gen->pop("rax");
-                    gen->output << "sub rax, rdi\n";
-                    gen->push("rax");
+                    gen.pop("rdi");
+                    gen.pop("rax");
+                    gen.output << "sub rax, rdi\n";
+                    gen.push("rax");
                 } else if (bin_expr->operation.val == "*"){
-                    gen->pop("rdi");
-                    gen->pop("rax");
-                    gen->output << "mul rdi\n";
-                    gen->push("rax");
+                    gen.pop("rdi");
+                    gen.pop("rax");
+                    gen.output << "mul rdi\n";
+                    gen.push("rax");
                 } else if (bin_expr->operation.val == "/"){
-                    gen->pop("rdi");
-                    gen->pop("rax");
-                    gen->output << "div rdi\n";
-                    gen->push("rax");
+                    gen.pop("rdi");
+                    gen.pop("rax");
+                    gen.output << "div rdi\n";
+                    gen.push("rax");
                 } else {
                     std::cerr << "Unknown binary operator";
                     exit(-1);
@@ -94,35 +108,57 @@ class Generator {
         };
 
         struct StmntVisitor {
-            Generator* gen;
+            Generator& gen;
             void operator()(const Node::StmntExit* exit_stmnt){
-                gen->gen_expr(exit_stmnt->expr);
-                gen->output << "mov rax, 60\n";
-                gen->pop("rdi");
-                gen->output << "syscall\n";
+                gen.gen_expr(exit_stmnt->expr);
+                gen.output << "mov rax, 60\n";
+                gen.pop("rdi");
+                gen.output << "syscall\n";
             };
 
             void operator()(const Node::DeclareIdent* ident_declare){
-                if (gen->scopes.back().variables.find(ident_declare->ident->ident.val) == gen->scopes.back().variables.end()){
-                    gen->scopes.back().variables.insert({ident_declare->ident->ident.val, Var {.type = ident_declare->type->type.val, .stack_loc = gen->stack_size}});
-                    gen->gen_expr(ident_declare->expr);
+                if (gen.scopes.back().variables.find(ident_declare->ident->ident.val) == gen.scopes.back().variables.end()){
+                    gen.scopes.back().variables.insert({ident_declare->ident->ident.val, Var {.type = ident_declare->type->type.val, .stack_loc = gen.stack_size}});
+                    gen.gen_expr(ident_declare->expr);
                 } else { std::cerr << "Redeclaration of variable: " << ident_declare->ident->ident.val << "\n";
                     exit(-1);
                 };
             };
             
             void operator()(const Node::Scope* scope){
-                gen->gen_scope(scope);
-            }
+                gen.gen_scope(scope);
+            };
+
+            void operator()(const Node::IfElse* if_block){
+                gen.gen_expr(if_block->condition);
+                gen.pop("rax");
+                std::string end_if = "label" + std::to_string(gen.label_count++);
+                std::string end_else = "label" + std::to_string(gen.label_count++);
+
+                gen.output << "test rax, rax\n";
+                gen.output << "jz " << end_if << "\n";
+                gen.gen_scope(if_block->if_block);
+
+                if (if_block->else_block.has_value()){
+                    gen.output << "jmp " << end_else << "\n";
+                }
+
+                gen.output << end_if << ":\n";
+
+                if (if_block->else_block.has_value()){
+                    gen.gen_scope(if_block->else_block.value());
+                    gen.output << end_else << ":\n";
+                }
+            };
         };
 
         void gen_expr(const Node::Expr* expr){
-            ExprVisitor visitor = {.gen = this};
+            ExprVisitor visitor = {.gen = *this};
             std::visit(visitor, expr->var);
         };
 
         void gen_stmnt(const Node::Stmnt* stmnt){
-            StmntVisitor visitor = {.gen = this};
+            StmntVisitor visitor = {.gen = *this};
             std::visit(visitor, stmnt->var);
         };
 
