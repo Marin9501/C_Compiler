@@ -1,13 +1,14 @@
 #pragma once
+#include <optional>
 #include <variant>
 #include <vector>
 #include <string>
 
 enum class TokenType {
     //Statements
-    _exit, _type_dec, _if,
+    _exit, _type_dec, _if, _else,
     //Expressions?
-     _int_lit, _func, _ident,
+     _int_lit, _func, _ident, _bool_lit,
     //Math
      _bin_op, _eq,
     //Other
@@ -21,6 +22,10 @@ struct Token {
 namespace Node {
     struct IntLit {
         Token val;
+    };
+
+    struct BoolLit {
+        Token bool_lit;
     };
 
     struct Type {
@@ -40,7 +45,7 @@ namespace Node {
     };
 
     struct Expr {
-        std::variant<IntLit*, Ident*, BinExpr*> var;
+        std::variant<IntLit*, Ident*, BinExpr*, BoolLit*> var;
     };
 
     struct DeclareIdent {
@@ -55,13 +60,14 @@ namespace Node {
 
     struct Scope;
 
-    struct If {
+    struct IfElse {
         Expr* condition;
-        Scope* scope;
+        Scope* if_block;
+        std::optional<Scope*> else_block;
     };
 
     struct Stmnt {
-        std::variant<StmntExit*, DeclareIdent*, Scope*, If*> var; 
+        std::variant<StmntExit*, DeclareIdent*, Scope*, IfElse*> var; 
     };
 
     struct Scope {

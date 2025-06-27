@@ -51,7 +51,13 @@ class Parser{
 
                 expr->var = int_lit;
                 return expr;
-                //return Node::Expr({.var = Node::IntLit({.val = mov_next().value()})});
+            } else if (look().has_value() && look().value().type == TokenType::_bool_lit){
+                Node::BoolLit* bool_lit = allocator.alloc<Node::BoolLit>();
+                bool_lit->bool_lit = mov_next().value();
+
+                expr->var = bool_lit;
+                return expr;
+
             } else if (look().has_value() && look().value().type == TokenType::_ident){
                 Node::Ident* ident = allocator.alloc<Node::Ident>();
                 ident->ident = mov_next().value();
@@ -101,24 +107,30 @@ class Parser{
                 return expr;
         };
 
-        Node::If* parse_if(){
-            Node::If* if_block = allocator.alloc<Node::If>();
+        Node::IfElse* parse_if_else(){
+            Node::IfElse* if_stmnt = allocator.alloc<Node::IfElse>();
             mov_next(); //Skip 'if' token
             if (look().has_value() && look().value().type != TokenType::_open_par){
                 std::cerr << "Expected '(' after 'if' statement\n";
                 exit(-1);
             };
             mov_next(); //Skip '('
-            if_block->condition = parse_expr();
+            if_stmnt->condition = parse_expr();
             mov_next(); //Skip ')'
-            if_block->scope = parse_scope();
-            return if_block;
+            if_stmnt->if_block = parse_scope();
+            if (look().has_value() && look().value().type == TokenType::_else){
+                mov_next(); //Skip 'else' token
+                Node::Scope* scope = allocator.alloc<Node::Scope>();
+                scope->stmnts.push_back(parse_stmnt());
+                if_stmnt->else_block = scope;
+            }
+            return if_stmnt;
         };
         
         Node::Stmnt* parse_stmnt(){
             Node::Stmnt* stmnt_node = allocator.alloc<Node::Stmnt>();
             if (look().has_value() && look().value().type == TokenType::_if){
-                Node::If* if_block = parse_if();
+                Node::IfElse* if_block = parse_if_else();
                 stmnt_node->var = if_block;
             } else if (look().has_value() && look().value().type == TokenType::_open_curl){
                 Node::Scope* scope = parse_scope();
