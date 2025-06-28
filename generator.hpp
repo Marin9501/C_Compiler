@@ -2,6 +2,7 @@
 
 #include "structs.hpp"
 #include <iostream>
+#include <optional>
 #include <string>
 #include <sstream>
 #include <variant>
@@ -36,6 +37,17 @@ class Generator {
             stack_size--;
         }
 
+        std::optional<Var> find_var(const Node::Ident* ident, const int depth=0){
+            for (int i = depth; i >= 0; i--){
+                const Scope scope = scopes.at(i);
+                if (scope.variables.find(ident->ident.val) != scope.variables.end()){
+                    const Var& var = scope.variables.at(ident->ident.val);
+                    return var;
+                };
+            };
+            return {};
+        };
+
         struct ExprVisitor {
             Generator& gen;
 
@@ -58,20 +70,12 @@ class Generator {
             }
             
             void operator()(const Node::Ident* ident){
-                bool not_found = true;
-                for (int i = gen.scopes.size()-1; i >= 0; i--){
-                    const Scope scope = gen.scopes.at(i);
-                    if (scope.variables.find(ident->ident.val) != scope.variables.end()){
-                        not_found = false;
-                        const Var& var = scope.variables.at(ident->ident.val);
-                        std::stringstream s;
-                        s << "QWORD [rsp + " << (gen.stack_size - var.stack_loc - 1)*8 << "]\n";
-                        gen.push(s.str());
-                        break;
-                    };
-                };
-
-                if (not_found){
+                std::optional<Var> var = gen.find_var(ident, gen.scopes.size()-1);
+                if (var.has_value()){
+                    std::stringstream s;
+                    s << "QWORD [rsp + " << (gen.stack_size - var.value().stack_loc - 1)*8 << "]\n";
+                    gen.push(s.str());
+                } else {
                     std::cerr << "Use of undeclared variable: " << ident->ident.val << "\n";
                     exit(-1);
                 };
@@ -124,17 +128,25 @@ class Generator {
                     exit(-1);
                 };
             };
-            
-            void operator()(const Node::Scope* scope){
-                gen.gen_scope(scope);
-            };
+
+            void operator()(const Node::VarAssign* var_assign){
+                std::optional<Var> var = gen.find_var(var_assign->ident);
+                if (var.has_value()){
+                    gen.gen_expr(var_assign->expr);
+                    gen.pop("rax");
+                    gen.output << "mov [rsp + " << (gen.stack_size - var.value().stack_loc - 1)*8 << "], rax\n";
+                } else {
+                    std::cerr << "Undeclared variable " << var_assign->ident->ident.val << "\n";
+                    exit(-1);
+                }
+            }
 
             void operator()(const Node::IfElse* if_block){
-                gen.gen_expr(if_block->condition);
-                gen.pop("rax");
                 std::string end_if = "label" + std::to_string(gen.label_count++);
                 std::string end_else = "label" + std::to_string(gen.label_count++);
 
+                gen.gen_expr(if_block->condition);
+                gen.pop("rax");
                 gen.output << "test rax, rax\n";
                 gen.output << "jz " << end_if << "\n";
                 gen.gen_scope(if_block->if_block);
@@ -149,6 +161,10 @@ class Generator {
                     gen.gen_scope(if_block->else_block.value());
                     gen.output << end_else << ":\n";
                 }
+            };
+            
+            void operator()(const Node::Scope* scope){
+                gen.gen_scope(scope);
             };
         };
 

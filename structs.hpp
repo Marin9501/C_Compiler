@@ -54,6 +54,11 @@ namespace Node {
         Expr* expr;
     };
 
+    struct VarAssign {
+        Ident* ident;
+        Expr* expr;
+    };
+
     struct StmntExit {
         Expr* expr;
     };
@@ -67,7 +72,7 @@ namespace Node {
     };
 
     struct Stmnt {
-        std::variant<StmntExit*, DeclareIdent*, Scope*, IfElse*> var; 
+        std::variant<StmntExit*, DeclareIdent*, Scope*, IfElse*, VarAssign*> var; 
     };
 
     struct Scope {

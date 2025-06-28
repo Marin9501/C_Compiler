@@ -126,64 +126,81 @@ class Parser{
             }
             return if_stmnt;
         };
-        
-        Node::Stmnt* parse_stmnt(){
-            Node::Stmnt* stmnt_node = allocator.alloc<Node::Stmnt>();
-            if (look().has_value() && look().value().type == TokenType::_if){
-                Node::IfElse* if_block = parse_if_else();
-                stmnt_node->var = if_block;
-            } else if (look().has_value() && look().value().type == TokenType::_open_curl){
-                Node::Scope* scope = parse_scope();
-                stmnt_node->var = scope;
-            } else if (look().has_value() && look().value().type == TokenType::_close_curl){
-                return stmnt_node;
-            } else {
-                if (look().has_value() && look().value().type == TokenType::_exit){
-                    if (look(1).has_value() && look(1).value().type == TokenType::_open_par){
-                        mov_next(); //Skip 'exit' token
-                        mov_next(); //Skip '('
-                        Node::StmntExit* stmnt_exit = allocator.alloc<Node::StmntExit>();
-                        stmnt_exit->expr = parse_expr();
-                        stmnt_node->var = stmnt_exit;
-                        if (look().has_value() && look().value().type == TokenType::_close_par){
-                            mov_next(); //Skip ')'
-                        } else {
-                            std::cerr << "Expected ')' when doing exit\n";
-                            exit(-1);
-                        }
-                    } else {
-                        std::cerr << "Expected '(' when doing exit\n";
-                        exit(-1);
-                    };
-                } else if (look().has_value() && look().value().type == TokenType::_type_dec && 
-                        look(1).has_value() && look(1).value().type == TokenType::_ident &&  
-                        look(2).has_value() && look(2).value().type == TokenType::_eq){
-                    Node::Type* type = allocator.alloc<Node::Type>();
-                    type->type = mov_next().value();
-                    Node::Ident* ident = allocator.alloc<Node::Ident>();
-                    ident->ident = mov_next().value();
-                    mov_next(); //skip `=`
-                    Node::DeclareIdent* declare = allocator.alloc<Node::DeclareIdent>();
-                    declare->type = type;
-                    declare->ident = ident;
-                    declare->expr = parse_expr();
-                    stmnt_node->var = declare;
-                } else {
-                    std::cerr << "Something went worng when parsing statment\n";
-                    exit(-1);
-                };
 
+        void check_semi_col(bool force=true){
+            if (force){
                 if (look().has_value() && look().value().type == TokenType::_semi_col){
                     mov_next();
                 } else {
                     std::cerr << "Expected ; at the end of a line\n";
                     exit(-1);
                 }
+            } else {
+                if (look().has_value() && look().value().type == TokenType::_semi_col){
+                    mov_next();
+                }
+            }
+        };
+        
+        Node::Stmnt* parse_stmnt(){
+            Node::Stmnt* stmnt_node = allocator.alloc<Node::Stmnt>();
+            if (look().has_value() && look().value().type == TokenType::_exit){
+                if (look(1).has_value() && look(1).value().type == TokenType::_open_par){
+                    mov_next(); //Skip 'exit' token
+                    mov_next(); //Skip '('
+                    Node::StmntExit* stmnt_exit = allocator.alloc<Node::StmntExit>();
+                    stmnt_exit->expr = parse_expr();
+                    stmnt_node->var = stmnt_exit;
+                    if (look().has_value() && look().value().type == TokenType::_close_par){
+                        mov_next(); //Skip ')'
+                    } else {
+                        std::cerr << "Expected ')' when doing exit\n";
+                        exit(-1);
+                    }
+                } else {
+                    std::cerr << "Expected '(' when doing exit\n";
+                    exit(-1);
+                };
+                check_semi_col();
+            } else if (look().has_value() && look().value().type == TokenType::_type_dec && 
+                    look(1).has_value() && look(1).value().type == TokenType::_ident &&  
+                    look(2).has_value() && look(2).value().type == TokenType::_eq){
+                Node::Type* type = allocator.alloc<Node::Type>();
+                type->type = mov_next().value();
+                Node::Ident* ident = allocator.alloc<Node::Ident>();
+                ident->ident = mov_next().value();
+                mov_next(); //skip `=`
+                Node::DeclareIdent* declare = allocator.alloc<Node::DeclareIdent>();
+                declare->type = type;
+                declare->ident = ident;
+                declare->expr = parse_expr();
+                stmnt_node->var = declare;
+                check_semi_col();
+            } else if (look().has_value() && look().value().type == TokenType::_ident &&
+                    look(1).has_value() && look(1).value().type == TokenType::_eq){
+                Node::VarAssign* var_assign= allocator.alloc<Node::VarAssign>();
+                Node::Ident* ident = allocator.alloc<Node::Ident>();
+                ident->ident = mov_next().value();
+                var_assign->ident = ident;
+                mov_next(); //Skip '='
+                var_assign->expr = parse_expr();
+                stmnt_node->var = var_assign;
+                check_semi_col();
+            } else if (look().has_value() && look().value().type == TokenType::_if){
+                Node::IfElse* if_block = parse_if_else();
+                stmnt_node->var = if_block;
+            } else if (look().has_value() && look().value().type == TokenType::_close_curl){
+                check_semi_col(false);
+                return stmnt_node;
+            } else if (look().has_value() && look().value().type == TokenType::_open_curl){
+                Node::Scope* scope = parse_scope();
+                stmnt_node->var = scope;
+                check_semi_col(false);
+            } else {
+                std::cerr << "Something went worng when parsing statment\n";
+                exit(-1);
             };
 
-            if (look().has_value() && look().value().type == TokenType::_semi_col){
-                mov_next();
-            }
             return stmnt_node;
         };
 
