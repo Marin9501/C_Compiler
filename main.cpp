@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "./tokenizer.hpp"
+#include "tokenizer.hpp"
 #include "generator.hpp"
 #include "parser.hpp"
 #include "structs.hpp"
