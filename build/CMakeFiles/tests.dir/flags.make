@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -I/home/martin/C_Complier/include -isystem /home/martin/C_Complier/build/_deps/googletest-src/googletest/include -isystem /home/martin/C_Complier/build/_deps/googletest-src/googletest
 
-CXX_FLAGS = -std=gnu++17
+CXX_FLAGS = -g -std=gnu++17
 

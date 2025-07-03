@@ -6,7 +6,7 @@
 
 enum class TokenType {
     //Statements
-    _exit, _type_dec, _if, _else,
+    _exit, _type_dec, _if, _else, _for,
     //Expressions?
      _int_lit, _func, _ident, _bool_lit,
     //Math
@@ -44,17 +44,17 @@ namespace Node {
         Expr* Right;
     };
 
-    struct Expr {
-        std::variant<IntLit*, Ident*, BinExpr*, BoolLit*> var;
-    };
-
-    struct DeclareIdent {
-        Type* type;
+    struct VarAssign {
         Ident* ident;
         Expr* expr;
     };
 
-    struct VarAssign {
+    struct Expr {
+        std::variant<IntLit*, Ident*, BinExpr*, BoolLit*, VarAssign*> var;
+    };
+
+    struct DeclareIdent {
+        Type* type;
         Ident* ident;
         Expr* expr;
     };
@@ -71,8 +71,17 @@ namespace Node {
         std::optional<Scope*> else_block;
     };
 
+    struct Stmnt;
+
+    struct ForLoop {
+        std::optional<Stmnt*> inicialization;
+        std::optional<Expr*> condition;
+        std::optional<Expr*> increment;
+        Scope* scope;
+    };
+
     struct Stmnt {
-        std::variant<StmntExit*, DeclareIdent*, Scope*, IfElse*, VarAssign*> var; 
+        std::variant<StmntExit*, DeclareIdent*, Scope*, IfElse*, VarAssign*, ForLoop*> var; 
     };
 
     struct Scope {
