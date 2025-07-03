@@ -1,1 +1,1 @@
-/usr/bin/c++ CMakeFiles/compiler.dir/main.cpp.o -o compiler 
+/usr/bin/c++ -g CMakeFiles/compiler.dir/main.cpp.o -o compiler 

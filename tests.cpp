@@ -45,6 +45,11 @@ TEST(Tokenizer, KeyWords){
     EXPECT_EQ(t.size(), 1);
     EXPECT_EQ(t.at(0).type, TokenType::_else);
     EXPECT_EQ(t.at(0).val, "");
+
+    t = tokenize_helper("for\n");
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(t.at(0).type, TokenType::_for);
+    EXPECT_EQ(t.at(0).val, "");
 }
 
 TEST(Tokenizer, MultipleKeywords){
@@ -205,3 +210,6 @@ TEST (Tokenizer, ParenCount){
     EXPECT_DEATH(tokenize_helper("({}"), ".*");
     EXPECT_DEATH(tokenize_helper("({)"), ".*");
 };
+
+// TEST (Parser, ){
+// }

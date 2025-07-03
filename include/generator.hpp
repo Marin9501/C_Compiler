@@ -37,8 +37,8 @@ class Generator {
             stack_size--;
         }
 
-        std::optional<Var> find_var(const Node::Ident* ident, const int depth=0){
-            for (int i = depth; i >= 0; i--){
+        std::optional<Var> find_var(const Node::Ident* ident){
+            for (int i = scopes.size()-1; i >= 0; i--){
                 const Scope scope = scopes.at(i);
                 if (scope.variables.find(ident->ident.val) != scope.variables.end()){
                     const Var& var = scope.variables.at(ident->ident.val);
@@ -70,10 +70,10 @@ class Generator {
             }
             
             void operator()(const Node::Ident* ident){
-                std::optional<Var> var = gen.find_var(ident, gen.scopes.size()-1);
+                std::optional<Var> var = gen.find_var(ident);
                 if (var.has_value()){
                     std::stringstream s;
-                    s << "QWORD [rsp + " << (gen.stack_size - var.value().stack_loc - 1)*8 << "]\n";
+                    s << "QWORD [rsp + " << (gen.stack_size - var.value().stack_loc - 1)*8 << "]";
                     gen.push(s.str());
                 } else {
                     std::cerr << "Use of undeclared variable: " << ident->ident.val << "\n";
@@ -109,6 +109,19 @@ class Generator {
                     exit(-1);
                 }
             }
+
+            void operator()(const Node::VarAssign* var_assign){
+                std::optional<Var> var = gen.find_var(var_assign->ident);
+                if (var.has_value()){
+                    gen.gen_expr(var_assign->expr);
+                    gen.pop("rax");
+                    gen.output << "mov [rsp + " << (gen.stack_size - var.value().stack_loc - 1)*8 << "], rax\n";
+                    gen.push("rax");
+                } else {
+                    std::cerr << "Undeclared variable " << var_assign->ident->ident.val << "\n";
+                    exit(-1);
+                }
+            }
         };
 
         struct StmntVisitor {
@@ -128,18 +141,6 @@ class Generator {
                     exit(-1);
                 };
             };
-
-            void operator()(const Node::VarAssign* var_assign){
-                std::optional<Var> var = gen.find_var(var_assign->ident);
-                if (var.has_value()){
-                    gen.gen_expr(var_assign->expr);
-                    gen.pop("rax");
-                    gen.output << "mov [rsp + " << (gen.stack_size - var.value().stack_loc - 1)*8 << "], rax\n";
-                } else {
-                    std::cerr << "Undeclared variable " << var_assign->ident->ident.val << "\n";
-                    exit(-1);
-                }
-            }
 
             void operator()(const Node::IfElse* if_block){
                 std::string end_if = "label" + std::to_string(gen.label_count++);
@@ -162,10 +163,68 @@ class Generator {
                     gen.output << end_else << ":\n";
                 }
             };
+
+            void operator()(const Node::VarAssign* var_assign){
+                std::optional<Var> var = gen.find_var(var_assign->ident);
+                if (var.has_value()){
+                    gen.gen_expr(var_assign->expr);
+                    gen.pop("rax");
+                    gen.output << "mov [rsp + " << (gen.stack_size - var.value().stack_loc - 1)*8 << "], rax\n";
+                } else {
+                    std::cerr << "Undeclared variable " << var_assign->ident->ident.val << "\n";
+                    exit(-1);
+                }
+            }
+
+            void operator()(const Node::ForLoop* for_loop){
+                std::string loop_start = "label" + std::to_string(gen.label_count++);
+                std::string condition_start = "label" + std::to_string(gen.label_count++);
+                std::string increment_start = "label" + std::to_string(gen.label_count++);
+                std::string loop_end = "label" + std::to_string(gen.label_count++);
+                if (!for_loop->inicialization.has_value() &&
+                        !for_loop->condition.has_value() &&
+                        !for_loop->increment.has_value()){
+                    gen.output << loop_start << ":\n";
+                    gen.gen_scope(for_loop->scope);
+                    gen.output << "jmp " << loop_start << "\n";
+                    gen.output << loop_end << ":\n";
+                } else {
+                    if (for_loop->inicialization.has_value()){
+                        gen.gen_stmnt(for_loop->inicialization.value());
+                    }
+                    gen.output << "jmp " << condition_start << "\n";
+
+                    gen.output << condition_start << ":\n";
+                    if (for_loop->condition.has_value()){
+                        gen.gen_expr(for_loop->condition.value());
+                        gen.pop("rax");
+                    } else {
+                        gen.output << "mov rax, 1\n";
+                    }
+                    gen.output << "test rax, rax\n";
+                    gen.output << "jnz " << loop_start << "\n";
+                    gen.output << "jz " << loop_end << "\n";
+
+                    gen.output << increment_start << ":\n";
+                    if (for_loop->increment.has_value()){
+                        gen.gen_expr(for_loop->increment.value());
+                        gen.pop("rax");
+                    }
+                    gen.output << "jmp " << condition_start << "\n";
+
+                    gen.output << loop_start << ":\n";
+                    gen.gen_scope(for_loop->scope);
+                    gen.output << "jmp " << increment_start << "\n";
+
+
+                    gen.output << loop_end << ":\n";
+                }
+
+            }
             
             void operator()(const Node::Scope* scope){
                 gen.gen_scope(scope);
-            };
+            }
         };
 
         void gen_expr(const Node::Expr* expr){

@@ -53,6 +53,9 @@ class Tokenizer{
                     } else if (buf == "else"){
                         tokens.push_back({.type = TokenType::_else});
                         buf.clear();
+                    } else if (buf == "for"){
+                        tokens.push_back({.type = TokenType::_for});
+                        buf.clear();
                     } else {
                         if (buf.at(0) == '_' && (buf.at(1) == '_' || std::isupper(buf.at(1)) || std::isdigit(buf.at(1)))){
                             std::cerr << "Reserved variable name. Either '__' or '_X' or '_'+digit is used\n";

@@ -61,7 +61,6 @@ class Parser{
 
                 expr->var = ident;
                 return expr;
-                //return Node::Expr({.var = Node::Ident({.ident = mov_next().value()})});
             } else if (look().has_value() && look().value().type == TokenType::_open_par){
                 mov_next(); //Skip '('
                 expr = parse_expr();
@@ -72,7 +71,7 @@ class Parser{
                 mov_next(); //Skip ')'
                 return expr;
             } else {
-                std::cerr << "Something went wrong when parsing expression\n";
+                std::cerr << "Something went wrong when parsing term\n";
                 exit(-1);
             };
         };
@@ -98,6 +97,15 @@ class Parser{
             Node::Expr* expr = allocator.alloc<Node::Expr>();
             if (look(1).has_value() && look(1).value().type == TokenType::_bin_op){
                 expr = parse_bin_expr();
+            } else if (look().has_value() && look().value().type == TokenType::_ident &&
+                    look(1).has_value() && look(1).value().type == TokenType::_eq){
+                Node::VarAssign* var_assign= allocator.alloc<Node::VarAssign>();
+                Node::Ident* ident = allocator.alloc<Node::Ident>();
+                ident->ident = mov_next().value();
+                var_assign->ident = ident;
+                mov_next(); //Skip '='
+                var_assign->expr = parse_expr();
+                expr->var = var_assign;
             } else {
                 expr = parse_term();
             };
@@ -138,6 +146,71 @@ class Parser{
                 }
             }
         };
+
+        Node::DeclareIdent* parse_declaration(){
+            Node::Type* type = allocator.alloc<Node::Type>();
+            type->type = mov_next().value();
+            Node::Ident* ident = allocator.alloc<Node::Ident>();
+            ident->ident = mov_next().value();
+            mov_next(); //skip `=`
+            Node::DeclareIdent* declare = allocator.alloc<Node::DeclareIdent>();
+            declare->type = type;
+            declare->ident = ident;
+            declare->expr = parse_expr();
+            check_semi_col();
+            return declare;
+        }
+
+        Node::VarAssign* parse_assign(){
+                Node::VarAssign* var_assign= allocator.alloc<Node::VarAssign>();
+                Node::Ident* ident = allocator.alloc<Node::Ident>();
+                ident->ident = mov_next().value();
+                var_assign->ident = ident;
+                mov_next(); //Skip '='
+                var_assign->expr = parse_expr();
+                check_semi_col(true);
+                return var_assign;
+        }
+
+
+        Node::ForLoop* parse_for_loop(){
+            Node::ForLoop* for_loop = allocator.alloc<Node::ForLoop>();
+            mov_next(); //Skip 'for' keyword
+            if (look().has_value() && look().value().type == TokenType::_open_par){
+                mov_next(); //Skip '('
+                if (look().has_value() && look().value().type != TokenType::_semi_col){
+                    for_loop->inicialization = parse_stmnt();
+                } else {
+                    mov_next(); //Skip ';'
+                }
+
+                if (look().has_value() && look().value().type != TokenType::_semi_col){
+                    for_loop->condition = parse_expr();
+                    mov_next(); //Skip ';'
+                } else {
+                    mov_next(); //Skip ';'
+                }
+ 
+
+                if (look().has_value() && look().value().type != TokenType::_close_par){
+                        for_loop->increment = parse_expr();
+                }
+
+                if (look().has_value() && look().value().type == TokenType::_close_par){
+                    mov_next(); //Skip ')'
+                } else {
+                    std::cerr << "Expected ')' when doing for loop\n";
+                    exit(-1);
+                }
+
+                for_loop->scope = parse_scope();
+
+            } else {
+                std::cerr << "Expected '(' when doing for loop\n";
+                exit(-1);
+            }
+            return for_loop;
+        }
         
         Node::Stmnt* parse_stmnt(){
             Node::Stmnt* stmnt_node = allocator.alloc<Node::Stmnt>();
@@ -162,27 +235,10 @@ class Parser{
             } else if (look().has_value() && look().value().type == TokenType::_type_dec && 
                     look(1).has_value() && look(1).value().type == TokenType::_ident &&  
                     look(2).has_value() && look(2).value().type == TokenType::_eq){
-                Node::Type* type = allocator.alloc<Node::Type>();
-                type->type = mov_next().value();
-                Node::Ident* ident = allocator.alloc<Node::Ident>();
-                ident->ident = mov_next().value();
-                mov_next(); //skip `=`
-                Node::DeclareIdent* declare = allocator.alloc<Node::DeclareIdent>();
-                declare->type = type;
-                declare->ident = ident;
-                declare->expr = parse_expr();
-                stmnt_node->var = declare;
-                check_semi_col();
+                stmnt_node->var = parse_declaration();
             } else if (look().has_value() && look().value().type == TokenType::_ident &&
                     look(1).has_value() && look(1).value().type == TokenType::_eq){
-                Node::VarAssign* var_assign= allocator.alloc<Node::VarAssign>();
-                Node::Ident* ident = allocator.alloc<Node::Ident>();
-                ident->ident = mov_next().value();
-                var_assign->ident = ident;
-                mov_next(); //Skip '='
-                var_assign->expr = parse_expr();
-                stmnt_node->var = var_assign;
-                check_semi_col();
+                stmnt_node->var = parse_assign();
             } else if (look().has_value() && look().value().type == TokenType::_if){
                 Node::IfElse* if_block = parse_if_else();
                 stmnt_node->var = if_block;
@@ -193,6 +249,9 @@ class Parser{
                 Node::Scope* scope = parse_scope();
                 stmnt_node->var = scope;
                 check_semi_col(false);
+            } else if (look().has_value() && look().value().type == TokenType::_for){
+                Node::ForLoop* for_loop= parse_for_loop();
+                stmnt_node->var = for_loop;
             } else {
                 std::cerr << "Something went worng when parsing statment\n";
                 exit(-1);
@@ -207,15 +266,15 @@ class Parser{
                 if (look().value().type != TokenType::_open_curl){
                 std::cerr << "Scope has to begin with '{'\n";
                 exit(-1);
-                } else {
+                }
                 mov_next(); //Skip '{'
-                };
             };
 
             while (look().has_value() && look().value().type != TokenType::_close_curl){
                 scope->stmnts.push_back(parse_stmnt());
             };
             mov_next(); //Skip '}'
+            check_semi_col(false);
 
             return scope;
         };
