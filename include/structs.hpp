@@ -6,9 +6,9 @@
 
 enum class TokenType {
     //Statements
-    _exit, _type_dec, _if, _else, _for,
+    _exit, _type_dec, _if, _else, _for, _break,
     //Expressions?
-     _int_lit, _func, _ident, _bool_lit,
+     _int_lit, _ident, _bool_lit,
     //Math
      _bin_op, _eq,
     //Other
@@ -80,8 +80,12 @@ namespace Node {
         Scope* scope;
     };
 
+    struct Break {
+        Token token;
+    };
+
     struct Stmnt {
-        std::variant<StmntExit*, DeclareIdent*, Scope*, IfElse*, VarAssign*, ForLoop*> var; 
+        std::variant<StmntExit*, DeclareIdent*, Scope*, IfElse*, VarAssign*, ForLoop*, Break*> var; 
     };
 
     struct Scope {

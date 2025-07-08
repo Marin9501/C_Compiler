@@ -1,4 +1,5 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/compiler.dir/link.d"
   "CMakeFiles/compiler.dir/main.cpp.o"
   "CMakeFiles/compiler.dir/main.cpp.o.d"
   "compiler"
