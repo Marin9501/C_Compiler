@@ -26,6 +26,7 @@ class Generator {
         size_t stack_size = 0;
         std::vector<Scope> scopes;
         int label_count = 0;
+        std::vector<std::string> loop_ends;
 
         void push(const std::string& reg){
             output << "push " << reg << "\n";
@@ -181,6 +182,7 @@ class Generator {
                 std::string condition_start = "label" + std::to_string(gen.label_count++);
                 std::string increment_start = "label" + std::to_string(gen.label_count++);
                 std::string loop_end = "label" + std::to_string(gen.label_count++);
+                gen.loop_ends.push_back(loop_end);
                 if (!for_loop->inicialization.has_value() &&
                         !for_loop->condition.has_value() &&
                         !for_loop->increment.has_value()){
@@ -224,6 +226,11 @@ class Generator {
             
             void operator()(const Node::Scope* scope){
                 gen.gen_scope(scope);
+            }
+
+            void operator()(const Node::Break* break_stmnt){
+                gen.output << "jmp " << gen.loop_ends.back() << "\n";
+                gen.loop_ends.pop_back();
             }
         };
 

@@ -1,1 +1,1 @@
-/usr/bin/c++ -g CMakeFiles/tests.dir/tests.cpp.o -o tests  lib/libgtest_main.a lib/libgtest.a 
+/usr/bin/c++ -g -Wl,--dependency-file=CMakeFiles/tests.dir/link.d CMakeFiles/tests.dir/tests.cpp.o -o tests  lib/libgtest_main.a lib/libgtest.a

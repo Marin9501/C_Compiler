@@ -1,5 +1,5 @@
-if(EXISTS "/home/martin/C_Complier/build/tests[1]_tests.cmake")
-  include("/home/martin/C_Complier/build/tests[1]_tests.cmake")
+if(EXISTS "/home/Martin/C_Compiler/build/tests[1]_tests.cmake")
+  include("/home/Martin/C_Compiler/build/tests[1]_tests.cmake")
 else()
   add_test(tests_NOT_BUILT tests_NOT_BUILT)
 endif()

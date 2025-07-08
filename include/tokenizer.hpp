@@ -56,6 +56,9 @@ class Tokenizer{
                     } else if (buf == "for"){
                         tokens.push_back({.type = TokenType::_for});
                         buf.clear();
+                    } else if (buf == "break"){
+                        tokens.push_back({.type = TokenType::_break});
+                        buf.clear();
                     } else {
                         if (buf.at(0) == '_' && (buf.at(1) == '_' || std::isupper(buf.at(1)) || std::isdigit(buf.at(1)))){
                             std::cerr << "Reserved variable name. Either '__' or '_X' or '_'+digit is used\n";
@@ -158,7 +161,7 @@ class Tokenizer{
                             index++;
                             break;
                         default:
-                            std::cerr << "Something went wrong while tokenizing\n" << buf;
+                            std::cerr << "Something went wrong while tokenizing\n" << "buf: '" << data.at(index) <<"'" <<"\n";
                             exit(-1);
                     }
 
